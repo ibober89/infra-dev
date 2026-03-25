@@ -1,0 +1,66 @@
+velveta_root: /opt/velveta
+
+velveta_users:
+  admin: admin
+  erp_dev: erpdev
+  frontend_dev: frontend
+  runner: github-runner
+
+velveta_paths:
+  dev_root: /opt/velveta/dev
+  nginx_root: /opt/velveta/nginx
+  infra_root: /opt/velveta/infra-dev
+  backups_root: /opt/velveta/backups
+  dev_frappe_root: /opt/velveta/dev/frappe-bench
+  dev_nextjs_root: /opt/velveta/dev/nextjs
+  runner_ecommerce_root: /opt/actions-runner-ecommerce
+  runner_frontendx_root: /opt/actions-runner-frontendx
+
+velveta_compose_targets:
+  dev_frappe: /opt/velveta/dev/docker-compose.frappe.yml
+  dev_nextjs: /opt/velveta/dev/docker-compose.nextjs.yml
+  nginx: /opt/velveta/nginx/docker-compose.yml
+
+velveta_domains:
+  erp_dev: erp-dev.velvetacare.com
+  nextjs_dev: dev.velvetacare.com
+
+velveta_ports:
+  erp_dev: 8081
+  nextjs_dev: 8083
+
+velveta_sites:
+  dev: erp-dev.velvetacare.com
+
+velveta_db:
+  root_password: "123"
+
+velveta_repos:
+  frappe:
+    url: https://github.com/frappe/frappe.git
+    branch: version-16
+  erpnext:
+    url: https://github.com/frappe/erpnext.git
+    branch: version-16
+  payments:
+    url: https://github.com/frappe/payments.git
+    branch: develop
+  ecommerce:
+    url: https://github.com/ibober89/ecommerce.git
+    branch: dev
+  frontendx:
+    url: https://github.com/ibober89/frontendX.git
+    branch: dev
+
+velveta_dev_rebuild:
+  site_name: erp-dev.velvetacare.com
+  admin_password: admin
+  ecommerce_service_user: ecommerce.service@example.com
+
+velveta_runner_services:
+  - name: actions.runner.ibober89-ecommerce.vm519642.service
+    description: GitHub Actions Runner (ibober89-ecommerce.vm519642)
+    working_directory: /opt/actions-runner-ecommerce
+  - name: actions.runner.ibober89-frontendX.vm519642-frontendx.service
+    description: GitHub Actions Runner (ibober89-frontendX.vm519642-frontendx)
+    working_directory: /opt/actions-runner-frontendx

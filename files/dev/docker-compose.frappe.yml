@@ -1,0 +1,60 @@
+name: dev-frappe
+
+services:
+  db:
+    image: mariadb:11.8
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_ROOT_PASSWORD: "123"
+      MARIADB_AUTO_UPGRADE: "1"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - db-data:/var/lib/mysql
+
+  redis-cache:
+    image: redis:6.2-alpine
+    restart: unless-stopped
+
+  redis-queue:
+    image: redis:6.2-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-queue-data:/data
+
+  bench:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    working_dir: /workspace/frappe-bench
+    command: bench start
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+    ports:
+      - "8000:8080"
+      - "9000:9000"
+    volumes:
+      - /opt/velveta/dev/frappe-bench:/workspace/frappe-bench
+    networks:
+      default:
+        aliases:
+          - dev-frontend
+
+volumes:
+  db-data:
+    name: dev_db-data
+  redis-queue-data:
+    name: dev_redis-queue-data

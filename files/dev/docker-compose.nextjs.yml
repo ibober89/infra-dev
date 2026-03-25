@@ -1,0 +1,34 @@
+name: dev-nextjs
+
+services:
+  web:
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      ERPNEXT_URL: http://dev-frontend:8080
+    ports:
+      - "3001:3000"
+    volumes:
+      - /opt/velveta/dev/nextjs:/app
+      - nextjs-node-modules:/app/node_modules
+      - nextjs-next-cache:/app/.next
+    networks:
+      default:
+        aliases:
+          - nextjs-dev
+      frappe_net:
+
+volumes:
+  nextjs-node-modules:
+    name: dev_nextjs-node-modules
+  nextjs-next-cache:
+    name: dev_nextjs-next-cache
+
+networks:
+  frappe_net:
+    external: true
+    name: dev-frappe_default

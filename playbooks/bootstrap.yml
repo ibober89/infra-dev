@@ -1,0 +1,63 @@
+- name: Bootstrap Velveta dev server layout
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: Ensure base directories for dev exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ velveta_root }}"
+        - "{{ velveta_paths.dev_root }}"
+        - "{{ velveta_paths.nginx_root }}"
+        - "{{ velveta_paths.nginx_root }}/conf.d"
+        - "{{ velveta_paths.nginx_root }}/sites-enabled"
+        - "{{ velveta_paths.nginx_root }}/ssl"
+        - "{{ velveta_paths.backups_root }}"
+
+    - name: Deploy dev env file
+      ansible.builtin.copy:
+        src: "{{ velveta_paths.infra_root }}/files/dev/.env"
+        dest: "{{ velveta_paths.dev_root }}/.env"
+        mode: "0640"
+
+    - name: Deploy dev Frappe compose
+      ansible.builtin.copy:
+        src: "{{ velveta_paths.infra_root }}/files/dev/docker-compose.frappe.yml"
+        dest: "{{ velveta_compose_targets.dev_frappe }}"
+        mode: "0644"
+
+    - name: Deploy dev Next.js compose
+      ansible.builtin.copy:
+        src: "{{ velveta_paths.infra_root }}/files/dev/docker-compose.nextjs.yml"
+        dest: "{{ velveta_compose_targets.dev_nextjs }}"
+        mode: "0644"
+
+    - name: Deploy nginx compose
+      ansible.builtin.copy:
+        src: "{{ velveta_paths.infra_root }}/files/nginx/docker-compose.yml"
+        dest: "{{ velveta_compose_targets.nginx }}"
+        mode: "0644"
+
+    - name: Deploy nginx main config
+      ansible.builtin.copy:
+        src: "{{ velveta_paths.infra_root }}/files/nginx/nginx.conf"
+        dest: "{{ velveta_paths.nginx_root }}/nginx.conf"
+        mode: "0644"
+
+    - name: Deploy dev-only nginx site config
+      ansible.builtin.copy:
+        src: "{{ velveta_paths.infra_root }}/files/nginx/default.conf"
+        dest: "{{ velveta_paths.nginx_root }}/conf.d/default.conf"
+        mode: "0644"
+
+    - name: Show next-step reminder
+      ansible.builtin.debug:
+        msg:
+          - "Dev bootstrap files are in place."
+          - "Use inventories/dev/hosts.yml with server-dev.yml or rebuild-dev.yml."

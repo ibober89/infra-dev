@@ -1,0 +1,223 @@
+- import_playbook: /opt/velveta/infra-dev/playbooks/server.yml
+
+- name: Rebuild the Velveta dev environment from GitHub
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: Stop dev Frappe stack if it exists
+      ansible.builtin.shell: docker compose -f {{ velveta_compose_targets.dev_frappe }} down
+      args:
+        executable: /bin/bash
+      ignore_errors: true
+      changed_when: true
+
+    - name: Stop dev Next.js stack if it exists
+      ansible.builtin.shell: docker compose -f {{ velveta_compose_targets.dev_nextjs }} down
+      args:
+        executable: /bin/bash
+      ignore_errors: true
+      changed_when: true
+
+    - name: Remove existing dev bench tree
+      ansible.builtin.file:
+        path: "{{ velveta_paths.dev_frappe_root }}"
+        state: absent
+
+    - name: Remove existing dev Next.js tree
+      ansible.builtin.file:
+        path: "{{ velveta_paths.dev_nextjs_root }}"
+        state: absent
+
+    - name: Recreate dev root directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - path: "{{ velveta_paths.dev_root }}"
+          owner: "{{ velveta_users.frontend_dev }}"
+          group: "{{ velveta_users.frontend_dev }}"
+          mode: "0755"
+        - path: "{{ velveta_paths.dev_frappe_root }}"
+          owner: "{{ velveta_users.frontend_dev }}"
+          group: "{{ velveta_users.erp_dev }}"
+          mode: "2775"
+        - path: "{{ velveta_paths.dev_nextjs_root }}"
+          owner: "{{ velveta_users.frontend_dev }}"
+          group: "{{ velveta_users.frontend_dev }}"
+          mode: "2775"
+
+    - name: Clone dev Next.js source
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.git:
+        repo: "{{ velveta_repos.frontendx.url }}"
+        dest: "{{ velveta_paths.dev_nextjs_root }}"
+        version: "{{ velveta_repos.frontendx.branch }}"
+        force: true
+
+    - name: Initialize Frappe bench structure
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_root }}:/workspace
+        -w /workspace
+        frappe/bench:latest
+        bash -lc "bench init frappe-bench --skip-redis-config-generation --frappe-branch {{ velveta_repos.frappe.branch }}"
+      args:
+        executable: /bin/bash
+
+    - name: Clone ERPNext app into dev bench
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
+        -w /workspace/frappe-bench
+        frappe/bench:latest
+        bash -lc "bench get-app --branch {{ velveta_repos.erpnext.branch }} {{ velveta_repos.erpnext.url }}"
+      args:
+        executable: /bin/bash
+
+    - name: Clone Payments app into dev bench
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
+        -w /workspace/frappe-bench
+        frappe/bench:latest
+        bash -lc "bench get-app --branch {{ velveta_repos.payments.branch }} {{ velveta_repos.payments.url }}"
+      args:
+        executable: /bin/bash
+
+    - name: Clone ecommerce app into dev bench
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
+        -w /workspace/frappe-bench
+        frappe/bench:latest
+        bash -lc "bench get-app --branch {{ velveta_repos.ecommerce.branch }} {{ velveta_repos.ecommerce.url }}"
+      args:
+        executable: /bin/bash
+
+    - name: Ensure dev bench ownership is correct
+      ansible.builtin.file:
+        path: "{{ velveta_paths.dev_frappe_root }}"
+        state: directory
+        recurse: true
+        owner: "{{ velveta_users.frontend_dev }}"
+        group: "{{ velveta_users.erp_dev }}"
+        mode: "u=rwX,g=rwX,o=rX"
+
+    - name: Reapply shared repository mode for ecommerce
+      ansible.builtin.shell: git -C {{ velveta_paths.dev_frappe_root }}/apps/ecommerce config core.sharedRepository group
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Start dev Frappe infra services
+      ansible.builtin.shell: docker compose -f {{ velveta_compose_targets.dev_frappe }} up -d
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Wait for dev DB to become healthy
+      ansible.builtin.shell: docker inspect --format '{{"{{"}}json .State.Health.Status{{"}}"}}' dev-frappe-db-1
+      register: velveta_dev_db_health
+      retries: 30
+      delay: 5
+      until: velveta_dev_db_health.stdout == '"healthy"'
+      changed_when: false
+
+    - name: Configure common bench settings
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: |
+        docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && \
+        bench set-config -g db_host db && \
+        bench set-config -gp db_port 3306 && \
+        bench set-config -g redis_cache redis://redis-cache:6379 && \
+        bench set-config -g redis_queue redis://redis-queue:6379 && \
+        bench set-config -g redis_socketio redis://redis-queue:6379 && \
+        bench set-config -gp webserver_port 8080 && \
+        bench set-config -gp socketio_port 9000 && \
+        bench set-config -g default_site {{ velveta_dev_rebuild.site_name }} && \
+        bench set-config -g serve_default_site true'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Create dev site from scratch
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker exec dev-frappe-bench-1 bash -lc
+        'cd /workspace/frappe-bench &&
+        bench new-site {{ velveta_dev_rebuild.site_name }}
+        --admin-password {{ velveta_dev_rebuild.admin_password }}
+        --db-root-password {{ velveta_db.root_password }}'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Install ERPNext on dev site
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app erpnext'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Install Payments on dev site
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app payments'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Install ecommerce on dev site
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app ecommerce'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Configure dev ecommerce service user
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker exec dev-frappe-bench-1 bash -lc
+        'cd /workspace/frappe-bench &&
+        bench --site {{ velveta_dev_rebuild.site_name }} set-config ecommerce_service_user {{ velveta_dev_rebuild.ecommerce_service_user }}'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Build dev ecommerce assets
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench build --app ecommerce'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Clone dev-safe directories for git
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: |
+        git config --global --get-all safe.directory | grep -Fx "{{ velveta_paths.dev_nextjs_root }}" >/dev/null || \
+        git config --global --add safe.directory "{{ velveta_paths.dev_nextjs_root }}"
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Start dev Next.js stack
+      ansible.builtin.shell: docker compose -f {{ velveta_compose_targets.dev_nextjs }} up -d
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Restart nginx after dev rebuild
+      ansible.builtin.shell: docker compose -f {{ velveta_compose_targets.nginx }} restart
+      args:
+        executable: /bin/bash
+      changed_when: true
