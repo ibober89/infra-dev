@@ -11,6 +11,7 @@ velveta_paths:
   nginx_root: /opt/velveta/nginx
   infra_root: /opt/velveta/infra-dev
   backups_root: /opt/velveta/backups
+  secrets_root: /opt/velveta/infra-dev/.secrets
   dev_frappe_root: /opt/velveta/dev/frappe-bench
   dev_nextjs_root: /opt/velveta/dev/nextjs
   runner_ecommerce_root: /opt/actions-runner-ecommerce
@@ -57,10 +58,28 @@ velveta_dev_rebuild:
   admin_password: admin
   ecommerce_service_user: ecommerce.service@example.com
 
+velveta_runner:
+  version: 2.328.0
+  github_api_base: https://api.github.com
+  github_pat_file: /opt/velveta/infra-dev/.secrets/github_runner_pat
+  package_arch_map:
+    x86_64: x64
+    amd64: x64
+    aarch64: arm64
+    arm64: arm64
+
 velveta_runner_services:
   - name: actions.runner.ibober89-ecommerce.vm519642.service
     description: GitHub Actions Runner (ibober89-ecommerce.vm519642)
     working_directory: /opt/actions-runner-ecommerce
+    github_owner: ibober89
+    github_repo: ecommerce
+    runner_name: vm519642-ecommerce
+    runner_labels: self-hosted,Linux,X64,dev,ecommerce
   - name: actions.runner.ibober89-frontendX.vm519642-frontendx.service
     description: GitHub Actions Runner (ibober89-frontendX.vm519642-frontendx)
     working_directory: /opt/actions-runner-frontendx
+    github_owner: ibober89
+    github_repo: frontendX
+    runner_name: vm519642-frontendx
+    runner_labels: self-hosted,Linux,X64,dev,frontendx
