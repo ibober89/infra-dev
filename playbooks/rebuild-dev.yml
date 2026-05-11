@@ -94,6 +94,17 @@
       args:
         executable: /bin/bash
 
+    - name: Clone Blog app into dev bench
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
+        -w /workspace/frappe-bench
+        frappe/bench:latest
+        bash -lc "bench get-app --branch {{ velveta_repos.blog.branch }} {{ velveta_repos.blog.url }}"
+      args:
+        executable: /bin/bash
+
     - name: Clone ecommerce app into dev bench
       become_user: "{{ velveta_users.frontend_dev }}"
       ansible.builtin.shell: >
@@ -173,6 +184,13 @@
     - name: Install Payments on dev site
       become_user: "{{ velveta_users.frontend_dev }}"
       ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app payments'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Install Blog on dev site
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app blog'
       args:
         executable: /bin/bash
       changed_when: true

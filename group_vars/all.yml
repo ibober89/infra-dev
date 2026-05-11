@@ -43,6 +43,9 @@ velveta_repos:
   payments:
     url: https://github.com/frappe/payments.git
     branch: develop
+  blog:
+    url: https://github.com/frappe/blog.git
+    branch: version-16
   ecommerce:
     url: https://github.com/ibober89/ecommerce.git
     branch: dev
