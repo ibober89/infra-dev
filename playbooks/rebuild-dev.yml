@@ -61,13 +61,19 @@
         version: "{{ velveta_repos.frontendx.branch }}"
         force: true
 
+    - name: Build dev Frappe bench image with Turkish locale
+      ansible.builtin.shell: docker build -t velveta-frappe-dev:bench -f {{ velveta_paths.dev_root }}/Dockerfile.frappe {{ velveta_paths.dev_root }}
+      args:
+        executable: /bin/bash
+      changed_when: true
+
     - name: Initialize Frappe bench structure
       become_user: "{{ velveta_users.frontend_dev }}"
       ansible.builtin.shell: >
         docker run --rm
         -v {{ velveta_paths.dev_root }}:/workspace
         -w /workspace
-        frappe/bench:latest
+        velveta-frappe-dev:bench
         bash -lc "bench init frappe-bench --skip-redis-config-generation --frappe-branch {{ velveta_repos.frappe.branch }}"
       args:
         executable: /bin/bash
@@ -78,7 +84,7 @@
         docker run --rm
         -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
         -w /workspace/frappe-bench
-        frappe/bench:latest
+        velveta-frappe-dev:bench
         bash -lc "bench get-app --branch {{ velveta_repos.erpnext.branch }} {{ velveta_repos.erpnext.url }}"
       args:
         executable: /bin/bash
@@ -89,7 +95,7 @@
         docker run --rm
         -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
         -w /workspace/frappe-bench
-        frappe/bench:latest
+        velveta-frappe-dev:bench
         bash -lc "bench get-app --branch {{ velveta_repos.payments.branch }} {{ velveta_repos.payments.url }}"
       args:
         executable: /bin/bash
@@ -100,7 +106,7 @@
         docker run --rm
         -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
         -w /workspace/frappe-bench
-        frappe/bench:latest
+        velveta-frappe-dev:bench
         bash -lc "bench get-app --branch {{ velveta_repos.blog.branch }} {{ velveta_repos.blog.url }}"
       args:
         executable: /bin/bash
@@ -111,7 +117,7 @@
         docker run --rm
         -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
         -w /workspace/frappe-bench
-        frappe/bench:latest
+        velveta-frappe-dev:bench
         bash -lc "bench get-app --branch {{ velveta_repos.ecommerce.branch }} {{ velveta_repos.ecommerce.url }}"
       args:
         executable: /bin/bash

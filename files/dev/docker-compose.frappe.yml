@@ -32,7 +32,10 @@ services:
       - redis-queue-data:/data
 
   bench:
-    image: frappe/bench:latest
+    build:
+      context: /opt/velveta/dev
+      dockerfile: Dockerfile.frappe
+    image: velveta-frappe-dev:bench
     restart: unless-stopped
     working_dir: /workspace/frappe-bench
     command: bench start

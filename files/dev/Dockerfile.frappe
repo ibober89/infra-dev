@@ -1,0 +1,8 @@
+FROM frappe/bench:latest
+
+USER root
+
+RUN localedef -i tr_TR -f UTF-8 tr_TR.UTF-8 \
+	&& localedef -i en_US -f UTF-8 en_US.UTF-8
+
+USER frappe
