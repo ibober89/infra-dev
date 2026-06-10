@@ -24,8 +24,8 @@ velveta_domains:
   nextjs_dev: dev.velvetacare.com
 
 velveta_ports:
-  erp_dev: 8081
-  nextjs_dev: 8083
+  erp_dev: 8080
+  nextjs_dev: 8082
 
 velveta_sites:
   dev: erp-dev.velvetacare.com
