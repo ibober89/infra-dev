@@ -13,6 +13,7 @@ services:
       - /opt/velveta/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /opt/velveta/nginx/conf.d:/etc/nginx/conf.d:ro
       - /opt/velveta/nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      - /opt/velveta/logs/nginx:/var/log/nginx
     networks:
       - default
       - dev-frappe
