@@ -21,6 +21,7 @@
           - rsync
           - acl
           - unzip
+          - fail2ban
         state: present
         update_cache: true
 
