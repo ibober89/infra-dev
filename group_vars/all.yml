@@ -46,6 +46,12 @@ velveta_repos:
   blog:
     url: https://github.com/frappe/blog.git
     branch: version-16
+  drive:
+    url: https://github.com/frappe/drive.git
+    branch: develop
+  writer:
+    url: https://github.com/frappe/writer.git
+    branch: develop
   ecommerce:
     url: https://github.com/ibober89/ecommerce.git
     branch: dev

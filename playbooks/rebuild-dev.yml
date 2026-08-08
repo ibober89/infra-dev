@@ -111,6 +111,28 @@
       args:
         executable: /bin/bash
 
+    - name: Clone Drive app into dev bench
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
+        -w /workspace/frappe-bench
+        velveta-frappe-dev:bench
+        bash -lc "bench get-app --branch {{ velveta_repos.drive.branch }} {{ velveta_repos.drive.url }}"
+      args:
+        executable: /bin/bash
+
+    - name: Clone Writer app into dev bench
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
+        -w /workspace/frappe-bench
+        velveta-frappe-dev:bench
+        bash -lc "bench get-app --branch {{ velveta_repos.writer.branch }} {{ velveta_repos.writer.url }}"
+      args:
+        executable: /bin/bash
+
     - name: Clone ecommerce app into dev bench
       become_user: "{{ velveta_users.frontend_dev }}"
       ansible.builtin.shell: >
@@ -197,6 +219,20 @@
     - name: Install Blog on dev site
       become_user: "{{ velveta_users.frontend_dev }}"
       ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app blog'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Install Drive on dev site
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app drive'
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Install Writer on dev site
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: docker exec dev-frappe-bench-1 bash -lc 'cd /workspace/frappe-bench && bench --site {{ velveta_dev_rebuild.site_name }} install-app writer'
       args:
         executable: /bin/bash
       changed_when: true
