@@ -122,6 +122,18 @@
       args:
         executable: /bin/bash
 
+    - name: Patch Drive preview behavior in dev bench
+      become_user: "{{ velveta_users.frontend_dev }}"
+      ansible.builtin.shell: >
+        docker run --rm
+        -v {{ velveta_paths.dev_frappe_root }}:/workspace/frappe-bench
+        -v {{ velveta_paths.infra_root }}/scripts/patch-drive-preview.py:/tmp/patch-drive-preview.py:ro
+        -w /workspace/frappe-bench
+        velveta-frappe-dev:bench
+        bash -lc "python /tmp/patch-drive-preview.py"
+      args:
+        executable: /bin/bash
+
     - name: Clone Writer app into dev bench
       become_user: "{{ velveta_users.frontend_dev }}"
       ansible.builtin.shell: >
