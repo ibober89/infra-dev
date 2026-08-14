@@ -56,6 +56,21 @@ services:
         aliases:
           - dev-frontend
 
+  queue-short:
+    image: velveta-frappe-dev:bench
+    restart: unless-stopped
+    working_dir: /workspace/frappe-bench
+    command: bench worker --queue short,default
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+    volumes:
+      - /opt/velveta/dev/frappe-bench:/workspace/frappe-bench
+
 volumes:
   db-data:
     name: dev_db-data
